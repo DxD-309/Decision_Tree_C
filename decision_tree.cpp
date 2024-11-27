@@ -1,16 +1,21 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-string train_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/train.csv";
-string test_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/test.csv";
+string train_file = "C:/Users/Admin/VSCODE/test/nmlt/Decision_Tree_C/train.csv";
+string test_file = "C:/Users/Admin/VSCODE/test/nmlt/Decision_Tree_C/test.csv";
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename);
 struct Node;
 double gini_score(vector<string>& labels);
 double calc_total_gini(vector<string>& left_gini, vector<string>& right_gini);
 pair<double, double> find_best_split(vector<vector<double>>& features, vector<string>& labels, int feature);
-Node* build(vector<vector<double>>& features, vector<string>& labels, int depth = 0);
+Node* build(vector<vector<double>>& features, vector<string>& labels, int depth, int leaf, int sample_split, int sample_leaf,
+            int max_depth, int max_leaf, int min_sample_split, int min_sample_leaf);
 string predict(Node* root, vector<double>& samples);
+double f1_macro(vector<string>& pred, vector<string>& test_label);
+double f1_micro(vector<string>& pred, vector<string>& test_label)
+double cross_validation(vector<vector<double>>& features, vector<string>& labels, int k, int f1_type, int max_depth, 
+                        int max_leaf, int min_sample_split, int min_sample_leaf);
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename){
     ifstream file(filename);
@@ -87,7 +92,8 @@ pair<double, double> find_best_split(vector<vector<double>>& features, vector<st
     return {best_gini_score, best_threshold};
 }
 
-Node* build(vector<vector<double>>& features, vector<string>& labels, int depth){
+Node* build(vector<vector<double>>& features, vector<string>& labels, int depth, int leaf, int sample_split, int sample_leaf,
+            int max_depth, int max_leaf, int min_sample_split, int min_sample_leaf){
     unordered_set<string> labelSet(labels.begin(), labels.end());
     if(labelSet.size() == 1){
         return new Node(*labelSet.begin());
@@ -106,7 +112,7 @@ Node* build(vector<vector<double>>& features, vector<string>& labels, int depth)
         }
     }
 
-    if(best_feature == -1){
+    if(best_feature == -1 || depth == max_depth || leaf == max_leaf || sample_split < min_sample_split || sample_leaf < min_sample_leaf){
         map<string, int> cnt;
         for(auto s : labels){
             cnt[s]++;
@@ -132,8 +138,10 @@ Node* build(vector<vector<double>>& features, vector<string>& labels, int depth)
     }
 
     Node* node = new Node(best_feature, best_threshold);
-    node->left = build(left_features, left_label, depth+1);
-    node->right = build(right_features, right_label, depth+1);
+    node->left = build(left_features, left_label, depth+1, leaf*2, left_features.size(), left_features.size(), max_depth, 
+                        max_leaf, min_sample_split, min_sample_leaf);
+    node->right = build(right_features, right_label, depth+1, leaf*2+1, right_features.size(), right_features.size(), max_depth, 
+                        max_leaf, min_sample_split, min_sample_leaf);
 
     return node;
 }
@@ -148,6 +156,52 @@ string predict(Node* root, vector<double>& samples){
     else return predict(root->right, samples);
 }
 
+double f1_macro(vector<string>& pred, vector<string>& test_label){
+
+}
+
+double f1_micro(vector<string>& pred, vector<string>& test_label){
+
+}
+
+double cross_validation(vector<vector<double>>& features, vector<string>& labels, int k, string f1_type, int max_depth, 
+                        int max_leaf, int min_sample_split, int min_sample_leaf){
+    int fold_size = features.size()/k;
+    for(int i = 0; i < k; i++){
+        vector<vector<double>> train_feature, test_feature;
+        vector<string> train_label, test_label;
+
+        for(int j = 0; j < features.size(); j++){
+            if(j/fold_size == i){
+                test_feature.push_back(features[j]);
+                test_label.push_back(labels[j]);
+            }
+            else{
+                train_feature.push_back(features[j]);
+                train_label.push_back(labels[j]);
+            }
+        }
+
+        Node* decision_tree = build(train_feature, train_label, 0, 1, train_feature.size(), train_feature.size(),
+                                    max_depth, max_leaf, min_sample_split, min_sample_leaf);
+
+        vector<string> pred;
+        for(int i = 0; i < test_feature.size(); i++){
+            string tmp = predict(decision_tree, test_feature[i]);
+            pred.push_back(tmp);
+        }
+
+        double f1_score = 0;
+        if(f1_type == "macro"){
+            f1_score += f1_macro(pred, test_label);
+        }
+        else{
+            f1_score += f1_micro(pred, test_label);
+        }
+        return f1_score/k;
+    }
+}
+
 int main(){
     vector<vector<double>> train_features;
     vector<string> train_labels;
@@ -155,12 +209,13 @@ int main(){
     vector<string> test_labels;
     extract_csv(train_features, train_labels, train_file);
     extract_csv(test_features, test_labels, test_file);
-    Node* decision_tree = build(train_features, train_labels, 0);
+    Node* decision_tree = build(train_features, train_labels, 0, 1, train_features.size(), train_features.size(), 
+                                10, 10, 2, 1);
     for(int i = 0; i < test_features.size(); i++){
         vector<double> features = test_features[i];
-        test_labels.push_back(predict(decision_tree, features));
+        string tmp = predict(decision_tree, features);
+        test_labels.push_back(tmp);
     }
-    cout << test_labels.size() << endl;
+
     for(auto s : test_labels) cout << s << endl;
-    // for(auto s : train_labels) cout << s << endl;
 }
