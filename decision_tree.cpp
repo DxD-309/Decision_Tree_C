@@ -1,8 +1,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-string train_file = "C:/Users/Admin/VSCODE/test/nmlt/Decision_Tree_C/train.csv";
-string test_file = "C:/Users/Admin/VSCODE/test/nmlt/Decision_Tree_C/test.csv";
+string train_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/train.csv";
+string test_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/test.csv";
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename);
 struct Node;
@@ -12,10 +12,17 @@ pair<double, double> find_best_split(vector<vector<double>>& features, vector<st
 Node* build(vector<vector<double>>& features, vector<string>& labels, int depth, int leaf, int sample_split, int sample_leaf,
             int max_depth, int max_leaf, int min_sample_split, int min_sample_leaf);
 string predict(Node* root, vector<double>& samples);
-double f1_macro(vector<string>& pred, vector<string>& test_label);
-double f1_micro(vector<string>& pred, vector<string>& test_label)
+vector<vector<int>> confusion_matrix(vector<string>& pred, vector<string>& label);
+double precision_score(vector<vector<int>>& confusion_matrix, int i);
+double recall_score(vector<vector<int>>& confusion_matrix, int i);
+double f1_score(vector<vector<int>>& confusion_matrix, int i);
+double f1_macro(vector<vector<int>>& confusion_matrix);
+double f1_micro(vector<vector<int>>& confusion_matrix);
 double cross_validation(vector<vector<double>>& features, vector<string>& labels, int k, int f1_type, int max_depth, 
                         int max_leaf, int min_sample_split, int min_sample_leaf);
+vector<pair<string, double>> grid_search_cv(vector<vector<double>>& features, vector<string>& labels, int k,
+        vector<int>& max_depth_range, vector<int>& max_leaf_range, vector<int>& min_sample_split_range, 
+        vector<int>& min_sample_leaf_range);
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename){
     ifstream file(filename);
@@ -156,18 +163,84 @@ string predict(Node* root, vector<double>& samples){
     else return predict(root->right, samples);
 }
 
-double f1_macro(vector<string>& pred, vector<string>& test_label){
+vector<vector<int>> confusion_matrix(vector<string>& pred, vector<string>& label){
+    vector<vector<int>> matrix(3, vector<int>(3, 0));
+    vector<int> pred_int;
+    vector<int> label_int;
+    for(int i = 0; i < pred.size(); i++){
+        if(pred[i] == "L") pred_int.push_back(0);
+        if(pred[i] == "R") pred_int.push_back(1);
+        if(pred[i] == "B") pred_int.push_back(2);
 
+        if(label[i] == "L") label_int.push_back(0);
+        if(label[i] == "R") label_int.push_back(1);
+        if(label[i] == "B") label_int.push_back(2);
+    }
+    for(int i = 0; i < pred.size(); i++){
+        int pred_class = pred_int[i];
+        int true_class = label_int[i];
+        matrix[pred_class][true_class]++;
+    }
+
+    return matrix;
 }
 
-double f1_micro(vector<string>& pred, vector<string>& test_label){
+double precision_score(vector<vector<int>>& confusion_matrix, int i){
+    double tp, fp;
+    tp = (double) confusion_matrix[i][i];
+    if(i == 0){
+        fp = (double) confusion_matrix[0][1] + (double) confusion_matrix[0][2];
+    }
+    else if(i == 1){
+        fp = (double) confusion_matrix[1][0] + (double) confusion_matrix[1][2];
+    }
+    else fp = (double) confusion_matrix[2][0] + (double) confusion_matrix[2][1];
 
+    return tp/(tp+fp);
 }
 
-double cross_validation(vector<vector<double>>& features, vector<string>& labels, int k, string f1_type, int max_depth, 
+double recall_score(vector<vector<int>>& confusion_matrix, int i){
+    double tp, fn;
+    tp = (double) confusion_matrix[i][i];
+    if(i == 0){
+        fn = (double)confusion_matrix[1][0] + (double) confusion_matrix[2][0];
+    }
+    else if(i == 1){
+        fn = (double) confusion_matrix[0][1] + (double) confusion_matrix[2][1];
+    }
+    else fn = (double) confusion_matrix[0][2] + (double) confusion_matrix[1][2];
+
+    return tp/(tp+fn);
+}
+
+double f1_score(vector<vector<int>>& confusion_matrix, int i){
+    double precision = precision_score(confusion_matrix, i);
+    double recall = recall_score(confusion_matrix, i);
+    return (2*precision*recall)/(precision+recall);
+}
+
+double f1_macro(vector<vector<int>>& confusion_matrix){
+    double F1_L = f1_score(confusion_matrix, 0);
+    double F1_R = f1_score(confusion_matrix, 1);
+    double F1_B = f1_score(confusion_matrix, 2);
+    return (F1_L+F1_R+F1_B)/3.0;
+}
+
+double f1_micro(vector<vector<int>>& confusion_matrix){
+    double tp_total = (double)(confusion_matrix[0][0] + confusion_matrix[1][1] + confusion_matrix[2][2]);
+    double fp_total = (double)(confusion_matrix[0][1] + confusion_matrix[0][2] + confusion_matrix[1][0]
+                            + confusion_matrix[1][2] + confusion_matrix[2][0] + confusion_matrix[2][1]);
+    double fn_total = (double)(confusion_matrix[1][0] + confusion_matrix[2][0] + confusion_matrix[0][1]
+                            + confusion_matrix[2][1] + confusion_matrix[0][2] + confusion_matrix[1][2]);
+
+    return (2*tp_total)/(2*tp_total + fp_total + fn_total);
+}
+
+double cross_validation(vector<vector<double>>& features, vector<string>& labels, int fold, string f1_type, int max_depth, 
                         int max_leaf, int min_sample_split, int min_sample_leaf){
-    int fold_size = features.size()/k;
-    for(int i = 0; i < k; i++){
+    int fold_size = features.size()/fold;
+    double f1_score = 0;
+    for(int i = 0; i < fold; i++){
         vector<vector<double>> train_feature, test_feature;
         vector<string> train_label, test_label;
 
@@ -191,15 +264,52 @@ double cross_validation(vector<vector<double>>& features, vector<string>& labels
             pred.push_back(tmp);
         }
 
-        double f1_score = 0;
+        vector<vector<int>> confusion_matrixx = confusion_matrix(pred, test_label);
+
+        double tmp_f1_score;
         if(f1_type == "macro"){
-            f1_score += f1_macro(pred, test_label);
+            tmp_f1_score = f1_macro(confusion_matrixx);
         }
         else{
-            f1_score += f1_micro(pred, test_label);
+            tmp_f1_score = f1_micro(confusion_matrixx);
         }
-        return f1_score/k;
+        f1_score += tmp_f1_score;
     }
+    return f1_score/(double)fold;
+}
+
+vector<pair<string, double>> grid_search_cv(vector<vector<double>>& features, vector<string>& labels, int fold,
+        vector<int>& max_depth_range, vector<int>& max_leaf_range, vector<int>& min_sample_split_range, 
+        vector<int>& min_sample_leaf_range){
+    int best_max_depth = -1;
+    int best_max_leaf = -1;
+    int best_min_sample_split = -1;
+    int best_min_sample_leaf = -1;
+    double best_cv_score = -1000000;
+    for(int i = 0; i < max_depth_range.size(); i++){
+        for(int j = 0; j < max_leaf_range.size(); j++){
+            for(int k = 0; k < min_sample_split_range.size(); k++){
+                for(int l = 0; l < min_sample_leaf_range.size(); l++){
+                    double tmp_cv_score = cross_validation(features, labels, fold, "micro", max_depth_range[i],
+                    max_leaf_range[j], min_sample_split_range[k], min_sample_leaf_range[l]);
+                    if(tmp_cv_score > best_cv_score){
+                        best_cv_score = tmp_cv_score;
+                        best_max_depth = max_depth_range[i];
+                        best_max_leaf = max_leaf_range[j];
+                        best_min_sample_split = min_sample_split_range[k];
+                        best_min_sample_leaf = min_sample_leaf_range[l];
+                    }
+                }
+            }
+        }
+    }
+    vector<pair<string, double>> ans;
+    ans.push_back({"Best F1 Score: ", best_cv_score});
+    ans.push_back({"Best Max Depth: ", best_max_depth});
+    ans.push_back({"Best Max Leaf: ", best_max_leaf});
+    ans.push_back({"Best Min Sample Split: ", best_min_sample_split});
+    ans.push_back({"Best Min Sample Leaf: ", best_min_sample_leaf});
+    return ans;
 }
 
 int main(){
@@ -209,13 +319,41 @@ int main(){
     vector<string> test_labels;
     extract_csv(train_features, train_labels, train_file);
     extract_csv(test_features, test_labels, test_file);
-    Node* decision_tree = build(train_features, train_labels, 0, 1, train_features.size(), train_features.size(), 
-                                10, 10, 2, 1);
-    for(int i = 0; i < test_features.size(); i++){
-        vector<double> features = test_features[i];
-        string tmp = predict(decision_tree, features);
-        test_labels.push_back(tmp);
+
+    vector<int> max_depth_range;
+    vector<int> max_leaf_range;
+    vector<int> min_sample_split_range;
+    vector<int> min_sample_leaf_range;
+        
+    for(int i = 1; i <= 10; i++) max_depth_range.push_back(i);
+    for(int i = 1; i <= 20; i++){
+        max_leaf_range.push_back(i);
+    }
+    for(int i = 1; i <= 5; i++){
+        min_sample_split_range.push_back(i);
+        min_sample_leaf_range.push_back(i);
     }
 
-    for(auto s : test_labels) cout << s << endl;
+    vector<pair<string, double>> grid_search = grid_search_cv(train_features, train_labels, 5, max_depth_range, 
+                            max_leaf_range, min_sample_split_range, min_sample_leaf_range);
+
+    for(auto p : grid_search){
+        cout << p.first << p.second << endl;
+    }
+
+    // Best F1 Score: 0.803774
+    // Best Max Depth: 8
+    // Best Max Leaf: 2
+    // Best Min Sample Split: 1
+    // Best Min Sample Leaf: 5
+
+    // Node* decision_tree = build(train_features, train_labels, 0, 1, train_features.size(), train_features.size(), 
+    //                             10, 10, 2, 1);
+    // for(int i = 0; i < test_features.size(); i++){
+    //     vector<double> features = test_features[i];
+    //     string tmp = predict(decision_tree, features);
+    //     test_labels.push_back(tmp);
+    // }
+
+    // for(auto s : test_labels) cout << s << endl;
 }
