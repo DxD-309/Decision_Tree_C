@@ -3,8 +3,10 @@ using namespace std;
 
 string train_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/train.csv";
 string test_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/test.csv";
+string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_1.txt";
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename);
+void return_text(vector<string>& predict, string return_file);
 struct Node;
 double gini_score(vector<string>& labels);
 double calc_total_gini(vector<string>& left_gini, vector<string>& right_gini);
@@ -47,8 +49,21 @@ void extract_csv(vector<vector<double>>& features, vector<string>& labels, strin
         }
         features.push_back(feature);
     }
+    file.close();
 }
 
+void return_text(vector<string>& predict, string return_file){
+    ofstream file(return_file);
+    if(!file.is_open()){
+        cout << "Error!";
+        return;
+    }
+    for(int i = 0; i < predict.size(); i++){
+        file << predict[i];
+        file << "\n";
+    }
+    file.close();
+}
 struct Node {
     string label;
     int feature;
@@ -334,12 +349,12 @@ int main(){
         min_sample_leaf_range.push_back(i);
     }
 
-    vector<pair<string, double>> grid_search = grid_search_cv(train_features, train_labels, 5, max_depth_range, 
-                            max_leaf_range, min_sample_split_range, min_sample_leaf_range);
+    // vector<pair<string, double>> grid_search = grid_search_cv(train_features, train_labels, 5, max_depth_range, 
+    //                         max_leaf_range, min_sample_split_range, min_sample_leaf_range);
 
-    for(auto p : grid_search){
-        cout << p.first << p.second << endl;
-    }
+    // for(auto p : grid_search){
+    //     cout << p.first << p.second << endl;
+    // }
 
     // Best F1 Score: 0.803774
     // Best Max Depth: 8
@@ -347,13 +362,14 @@ int main(){
     // Best Min Sample Split: 1
     // Best Min Sample Leaf: 5
 
-    // Node* decision_tree = build(train_features, train_labels, 0, 1, train_features.size(), train_features.size(), 
-    //                             10, 10, 2, 1);
-    // for(int i = 0; i < test_features.size(); i++){
-    //     vector<double> features = test_features[i];
-    //     string tmp = predict(decision_tree, features);
-    //     test_labels.push_back(tmp);
-    // }
+    Node* decision_tree = build(train_features, train_labels, 0, 1, train_features.size(), train_features.size(), 
+                                8, 2, 1, 5);
+    for(int i = 0; i < test_features.size(); i++){
+        vector<double> features = test_features[i];
+        string tmp = predict(decision_tree, features);
+        test_labels.push_back(tmp);
+    }
 
-    // for(auto s : test_labels) cout << s << endl;
+    for(auto s : test_labels) cout << s << endl;
+    return_text(test_labels, return_file);
 }

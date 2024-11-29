@@ -1,34 +1,25 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-int main(){
-    string filename = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/train.csv";
-    ifstream file(filename);
+string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_1.txt";
+
+void return_text(vector<string>& predict, string return_file){
+    ofstream file(return_file);
     if(!file.is_open()){
-        cout << "error!";
-        return 1;
+        cout << "Error!";
+        return;
     }
-    vector<string> train_labels;
-    vector<vector<double>> train_features;
-    string line;
-    while(getline(file, line)){
-        stringstream ss(line);
-        string s;
-        getline(ss, s, ',');
-        train_labels.push_back(s);
-        vector<double> features;
-        while(getline(ss, s, ',')){
-            features.push_back(stod(s));
-        }
-        train_features.push_back(features);
+    for(int i = 0; i < predict.size(); i++){
+        file << predict[i];
+        file << "\n";
     }
     file.close();
-    for(int i = 0; i < train_labels.size(); i++){  
-        cout << train_labels[i] << " ";
-        for(int j = 0; j < train_features[i].size(); j++){
-            cout << train_features[i][j] << " ";
-        }
-        cout << endl;
-    }
-    return 0;
+}
+
+int main(){
+    vector<string> tmp;
+    tmp.push_back("abc");
+    tmp.push_back("cba");
+    tmp.push_back("bac");
+    return_text(tmp, return_file);
 }
