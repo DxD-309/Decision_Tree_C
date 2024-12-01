@@ -3,7 +3,7 @@ using namespace std;
 
 string train_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/train.csv";
 string test_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/test.csv";
-string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_1.txt";
+string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_3.txt";
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename);
 void return_text(vector<string>& predict, string return_file);
@@ -58,7 +58,7 @@ void return_text(vector<string>& predict, string return_file){
         cout << "Error!";
         return;
     }
-    for(int i = 0; i < predict.size(); i++){
+    for(unsigned int i = 0; i < predict.size(); i++){
         file << predict[i];
         file << "\n";
     }
@@ -93,7 +93,7 @@ double calc_total_gini(vector<string>& left_gini, vector<string>& right_gini){
 
 pair<double, double> find_best_split(vector<vector<double>>& features, vector<string>& labels, int feature){
     unordered_set<double> featureSet;
-    for(int i = 0; i < features.size(); i++){
+    for(unsigned int i = 0; i < features.size(); i++){
         featureSet.insert(features[i][feature]);
     }
     double best_threshold = -1;
@@ -101,7 +101,7 @@ pair<double, double> find_best_split(vector<vector<double>>& features, vector<st
     for(double threshold : featureSet){
         vector<string> left_gini;
         vector<string> right_gini;
-        for(int i = 0; i < features.size(); i++){
+        for(unsigned int i = 0; i < features.size(); i++){
             if(features[i][feature] <= threshold) left_gini.push_back(labels[i]);
             else right_gini.push_back(labels[i]);
         }
@@ -123,7 +123,7 @@ Node* build(vector<vector<double>>& features, vector<string>& labels, int depth,
     int best_feature = -1;
     double best_threshold = -1;
     double best_gini_score = 100000000.0;
-    for(int feature = 0; feature < features[0].size(); feature++){
+    for(unsigned int feature = 0; feature < features[0].size(); feature++){
         auto best_split = find_best_split(features, labels, feature);
         double gini = best_split.first;
         double threshold = best_split.second;
@@ -148,7 +148,7 @@ Node* build(vector<vector<double>>& features, vector<string>& labels, int depth,
 
     vector<vector<double>> left_features, right_features;
     vector<string> left_label, right_label;
-    for(int i = 0; i < features.size(); i++){
+    for(unsigned int i = 0; i < features.size(); i++){
         if(features[i][best_feature] <= best_threshold){
             left_features.push_back(features[i]);
             left_label.push_back(labels[i]);
@@ -182,7 +182,7 @@ vector<vector<int>> confusion_matrix(vector<string>& pred, vector<string>& label
     vector<vector<int>> matrix(3, vector<int>(3, 0));
     vector<int> pred_int;
     vector<int> label_int;
-    for(int i = 0; i < pred.size(); i++){
+    for(unsigned int i = 0; i < pred.size(); i++){
         if(pred[i] == "L") pred_int.push_back(0);
         if(pred[i] == "R") pred_int.push_back(1);
         if(pred[i] == "B") pred_int.push_back(2);
@@ -191,7 +191,7 @@ vector<vector<int>> confusion_matrix(vector<string>& pred, vector<string>& label
         if(label[i] == "R") label_int.push_back(1);
         if(label[i] == "B") label_int.push_back(2);
     }
-    for(int i = 0; i < pred.size(); i++){
+    for(unsigned int i = 0; i < pred.size(); i++){
         int pred_class = pred_int[i];
         int true_class = label_int[i];
         matrix[pred_class][true_class]++;
@@ -211,6 +211,7 @@ double precision_score(vector<vector<int>>& confusion_matrix, int i){
     }
     else fp = (double) confusion_matrix[2][0] + (double) confusion_matrix[2][1];
 
+    if(tp + fp == 0.0) return 0.0;
     return tp/(tp+fp);
 }
 
@@ -225,12 +226,14 @@ double recall_score(vector<vector<int>>& confusion_matrix, int i){
     }
     else fn = (double) confusion_matrix[0][2] + (double) confusion_matrix[1][2];
 
+    if(tp + fn == 0.0) return 0.0;
     return tp/(tp+fn);
 }
 
 double f1_score(vector<vector<int>>& confusion_matrix, int i){
     double precision = precision_score(confusion_matrix, i);
     double recall = recall_score(confusion_matrix, i);
+    if(precision + recall == 0.0) return 0.0;
     return (2*precision*recall)/(precision+recall);
 }
 
@@ -259,7 +262,8 @@ double cross_validation(vector<vector<double>>& features, vector<string>& labels
         vector<vector<double>> train_feature, test_feature;
         vector<string> train_label, test_label;
 
-        for(int j = 0; j < features.size(); j++){
+        int n = features.size();
+        for(int j = 0; j < n; j++){
             if(j/fold_size == i){
                 test_feature.push_back(features[j]);
                 test_label.push_back(labels[j]);
@@ -270,11 +274,11 @@ double cross_validation(vector<vector<double>>& features, vector<string>& labels
             }
         }
 
-        Node* decision_tree = build(train_feature, train_label, 0, 1, train_feature.size(), train_feature.size(),
+        Node* decision_tree = build(train_feature, train_label, 1, 1, train_feature.size(), train_feature.size(),
                                     max_depth, max_leaf, min_sample_split, min_sample_leaf);
 
         vector<string> pred;
-        for(int i = 0; i < test_feature.size(); i++){
+        for(unsigned int i = 0; i < test_feature.size(); i++){
             string tmp = predict(decision_tree, test_feature[i]);
             pred.push_back(tmp);
         }
@@ -301,11 +305,11 @@ vector<pair<string, double>> grid_search_cv(vector<vector<double>>& features, ve
     int best_min_sample_split = -1;
     int best_min_sample_leaf = -1;
     double best_cv_score = -1000000;
-    for(int i = 0; i < max_depth_range.size(); i++){
-        for(int j = 0; j < max_leaf_range.size(); j++){
-            for(int k = 0; k < min_sample_split_range.size(); k++){
-                for(int l = 0; l < min_sample_leaf_range.size(); l++){
-                    double tmp_cv_score = cross_validation(features, labels, fold, "micro", max_depth_range[i],
+    for(unsigned int i = 0; i < max_depth_range.size(); i++){
+        for(unsigned int j = 0; j < max_leaf_range.size(); j++){
+            for(unsigned int k = 0; k < min_sample_split_range.size(); k++){
+                for(unsigned int l = 0; l < min_sample_leaf_range.size(); l++){
+                    double tmp_cv_score = cross_validation(features, labels, fold, "macro", max_depth_range[i],
                     max_leaf_range[j], min_sample_split_range[k], min_sample_leaf_range[l]);
                     if(tmp_cv_score > best_cv_score){
                         best_cv_score = tmp_cv_score;
@@ -340,36 +344,31 @@ int main(){
     vector<int> min_sample_split_range;
     vector<int> min_sample_leaf_range;
         
-    for(int i = 1; i <= 10; i++) max_depth_range.push_back(i);
-    for(int i = 1; i <= 20; i++){
+    for(int i = 5; i <= 10; i++) max_depth_range.push_back(i);
+    for(int i = 1; i <= 10; i++){
         max_leaf_range.push_back(i);
     }
-    for(int i = 1; i <= 5; i++){
+    for(int i = 1; i <= 10; i++){
         min_sample_split_range.push_back(i);
         min_sample_leaf_range.push_back(i);
     }
 
-    // vector<pair<string, double>> grid_search = grid_search_cv(train_features, train_labels, 5, max_depth_range, 
+    // vector<pair<string, double>> grid_search = grid_search_cv(train_features, train_labels, 10, max_depth_range, 
     //                         max_leaf_range, min_sample_split_range, min_sample_leaf_range);
 
     // for(auto p : grid_search){
     //     cout << p.first << p.second << endl;
     // }
 
-    // Best F1 Score: 0.803774
-    // Best Max Depth: 8
-    // Best Max Leaf: 2
-    // Best Min Sample Split: 1
-    // Best Min Sample Leaf: 5
 
-    Node* decision_tree = build(train_features, train_labels, 0, 1, train_features.size(), train_features.size(), 
-                                8, 2, 1, 5);
-    for(int i = 0; i < test_features.size(); i++){
+    Node* decision_tree = build(train_features, train_labels, 1, 1, train_features.size(), train_features.size(), 
+                                9, 8, 1, 4);
+    for(unsigned int i = 0; i < test_features.size(); i++){
         vector<double> features = test_features[i];
         string tmp = predict(decision_tree, features);
         test_labels.push_back(tmp);
     }
 
     for(auto s : test_labels) cout << s << endl;
-    return_text(test_labels, return_file);
+    // return_text(test_labels, return_file);
 }
