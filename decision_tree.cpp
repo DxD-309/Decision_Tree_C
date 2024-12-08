@@ -3,7 +3,7 @@ using namespace std;
 
 string train_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/train.csv";
 string test_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/test.csv";
-string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_3.txt";
+string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_5.txt";
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename);
 void return_text(vector<string>& predict, string return_file);
@@ -309,7 +309,7 @@ vector<pair<string, double>> grid_search_cv(vector<vector<double>>& features, ve
         for(unsigned int j = 0; j < max_leaf_range.size(); j++){
             for(unsigned int k = 0; k < min_sample_split_range.size(); k++){
                 for(unsigned int l = 0; l < min_sample_leaf_range.size(); l++){
-                    double tmp_cv_score = cross_validation(features, labels, fold, "macro", max_depth_range[i],
+                    double tmp_cv_score = cross_validation(features, labels, fold, "micro", max_depth_range[i],
                     max_leaf_range[j], min_sample_split_range[k], min_sample_leaf_range[l]);
                     if(tmp_cv_score > best_cv_score){
                         best_cv_score = tmp_cv_score;
@@ -360,9 +360,21 @@ int main(){
     //     cout << p.first << p.second << endl;
     // }
 
+    // Best F1 Score: 0.803774 
+    // Best Max Depth: 9       
+    // Best Max Leaf: 2        
+    // Best Min Sample Split: 1
+    // Best Min Sample Leaf: 5
+
+    // Best F1 Score: 0.79434
+    // Best Max Depth: 10
+    // Best Max Leaf: 8
+    // Best Min Sample Split: 1
+    // Best Min Sample Leaf: 1
+
 
     Node* decision_tree = build(train_features, train_labels, 1, 1, train_features.size(), train_features.size(), 
-                                9, 8, 1, 4);
+                                9, 2, 1, 5);
     for(unsigned int i = 0; i < test_features.size(); i++){
         vector<double> features = test_features[i];
         string tmp = predict(decision_tree, features);
@@ -370,5 +382,5 @@ int main(){
     }
 
     for(auto s : test_labels) cout << s << endl;
-    // return_text(test_labels, return_file);
+    return_text(test_labels, return_file);
 }
