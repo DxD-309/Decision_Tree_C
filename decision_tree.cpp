@@ -3,7 +3,7 @@ using namespace std;
 
 string train_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/train.csv";
 string test_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/test.csv";
-string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_5.txt";
+string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_6.txt";
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename);
 void return_text(vector<string>& predict, string return_file);
@@ -256,21 +256,52 @@ double f1_micro(vector<vector<int>>& confusion_matrix){
 
 double cross_validation(vector<vector<double>>& features, vector<string>& labels, int fold, string f1_type, int max_depth, 
                         int max_leaf, int min_sample_split, int min_sample_leaf){
-    int fold_size = features.size()/fold;
+    
+    vector<int> indicies(features.size());
+    iota(indicies.begin(), indicies.end(), 0);
+
+    random_device rd;
+    mt19937 gen(rd());
+    shuffle(indicies.begin(), indicies.end(), gen);
+
+    vector<vector<double>> features_shuffled(features.size());
+    vector<string> labels_shuffled(labels.size());
+
+    for(unsigned int i = 0; i < features.size(); i++){
+        features_shuffled[i] = features[indicies[i]];
+        labels_shuffled[i] = labels[indicies[i]];
+    }
+
+    vector<vector<int>> folds(fold);
+    unordered_map<string, vector<int>> class_indices;
+
+    for(unsigned int i = 0; i < labels_shuffled.size(); i++){
+        class_indices[labels_shuffled[i]].push_back(i);
+    }
+
+    for (auto& entry : class_indices) {
+        vector<int>& indices = entry.second;
+        int class_size = indices.size();
+        for (int i = 0; i < class_size; i++) {
+            folds[i % fold].push_back(indices[i]);
+        }
+    }
+
     double f1_score = 0;
     for(int i = 0; i < fold; i++){
         vector<vector<double>> train_feature, test_feature;
         vector<string> train_label, test_label;
 
-        int n = features.size();
-        for(int j = 0; j < n; j++){
-            if(j/fold_size == i){
-                test_feature.push_back(features[j]);
-                test_label.push_back(labels[j]);
-            }
-            else{
-                train_feature.push_back(features[j]);
-                train_label.push_back(labels[j]);
+        for(int j = 0; j < fold; j++){
+            for(int idx : folds[j]){
+                if(j == i){
+                    test_feature.push_back(features_shuffled[idx]);
+                    test_label.push_back(labels_shuffled[idx]);
+                }
+                else{
+                    train_feature.push_back(features_shuffled[idx]);
+                    train_label.push_back(labels_shuffled[idx]);
+                }
             }
         }
 
@@ -360,21 +391,8 @@ int main(){
     //     cout << p.first << p.second << endl;
     // }
 
-    // Best F1 Score: 0.803774 
-    // Best Max Depth: 9       
-    // Best Max Leaf: 2        
-    // Best Min Sample Split: 1
-    // Best Min Sample Leaf: 5
-
-    // Best F1 Score: 0.79434
-    // Best Max Depth: 10
-    // Best Max Leaf: 8
-    // Best Min Sample Split: 1
-    // Best Min Sample Leaf: 1
-
-
     Node* decision_tree = build(train_features, train_labels, 1, 1, train_features.size(), train_features.size(), 
-                                9, 2, 1, 5);
+                                5, 8, 1, 1);
     for(unsigned int i = 0; i < test_features.size(); i++){
         vector<double> features = test_features[i];
         string tmp = predict(decision_tree, features);
