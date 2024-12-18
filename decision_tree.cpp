@@ -3,7 +3,7 @@ using namespace std;
 
 string train_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/train.csv";
 string test_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/test.csv";
-string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_6.txt";
+string return_file = "C:/Users/Admin/Desktop/VSCODE/Decision Tree/predict_8.txt";
 
 void extract_csv(vector<vector<double>>& features, vector<string>& labels, string filename);
 void return_text(vector<string>& predict, string return_file);
@@ -384,7 +384,17 @@ int main(){
         min_sample_leaf_range.push_back(i);
     }
 
-    // vector<pair<string, double>> grid_search = grid_search_cv(train_features, train_labels, 10, max_depth_range, 
+    vector<vector<double>> train_features_rmB;
+    vector<string> train_labels_rmB;
+
+    for(unsigned int i = 0; i < train_features.size(); i++){
+        if(train_labels[i] != "B"){
+            train_features_rmB.push_back(train_features[i]);
+            train_labels_rmB.push_back(train_labels[i]);
+        }
+    }
+
+    // vector<pair<string, double>> grid_search = grid_search_cv(train_features_rmB, train_labels_rmB, 10, max_depth_range, 
     //                         max_leaf_range, min_sample_split_range, min_sample_leaf_range);
 
     // for(auto p : grid_search){
@@ -392,7 +402,7 @@ int main(){
     // }
 
     Node* decision_tree = build(train_features, train_labels, 1, 1, train_features.size(), train_features.size(), 
-                                5, 8, 1, 1);
+                                5, 4, 1, 1);
     for(unsigned int i = 0; i < test_features.size(); i++){
         vector<double> features = test_features[i];
         string tmp = predict(decision_tree, features);
